@@ -1,9 +1,6 @@
 # Real-Time Stock Market Data Pipeline
 
-An end-to-end real-time data engineering project that simulates stock market
-data generation, streams events through Apache Kafka, processes and validates
-the messages using a Python consumer, stores the data in PostgreSQL, and
-visualizes the results using Power BI.
+An end-to-end real-time data engineering project that simulates stock market data generation, streams events through Apache Kafka, processes and validates messages using a Python consumer, stores the data in PostgreSQL, and visualizes the results using Power BI.
 
 The entire data pipeline is containerized using Docker and Docker Compose.
 
@@ -11,17 +8,13 @@ The entire data pipeline is containerized using Docker and Docker Compose.
 
 ## 1. Project Overview
 
-The **Real-Time Stock Market Data Pipeline** is an event-driven data
-engineering project built to demonstrate how streaming data can be generated,
-processed, persisted, and visualized in near real time.
+The **Real-Time Stock Market Data Pipeline** is an event-driven data engineering project built to demonstrate how streaming data can be generated, processed, persisted, and visualized in near real time.
 
-The pipeline simulates stock market events for multiple stock symbols and
-continuously sends them through Kafka.
+The pipeline simulates stock market events for multiple stock symbols and continuously sends them through Kafka.
 
-The Python consumer reads the Kafka messages, validates the data, and stores
-valid records in PostgreSQL.
+The Python consumer reads Kafka messages, validates the data, and stores valid records in PostgreSQL.
 
-Power BI is then used to visualize the processed stock data.
+Power BI is then used to visualize the processed stock data through an interactive dashboard.
 
 ### Complete Pipeline
 
@@ -44,8 +37,16 @@ stock_summary
        |
        v
 Power BI Dashboard
+       |
+       v
+Automatic Page Refresh
+```
 
-# #Architecture
+---
+
+## 2. Architecture
+
+```text
                          Stock Data
                              |
                              v
@@ -81,30 +82,47 @@ Power BI Dashboard
                     +------------------+
                     |     Power BI     |
                     |    Dashboard     |
-                    +------------------+
+                    +--------+---------+
                              |
                              v
-                  Automatic Page Refresh
+                    Automatic Page Refresh
+```
 
-**3. Technologies Used**
+### Supporting Infrastructure
 
+```text
+Docker Compose
+|
++-- ZooKeeper
++-- Kafka
++-- Producer
++-- Consumer
++-- PostgreSQL
+```
 
-| Technology           | Purpose                            |
-| -------------------- | ---------------------------------- |
-| Python               | Data generation and Kafka consumer |
-| Apache Kafka         | Real-time event streaming          |
-| ZooKeeper            | Kafka coordination                 |
-| PostgreSQL           | Persistent data storage            |
-| Docker               | Containerization                   |
-| Docker Compose       | Multi-container orchestration      |
-| kafka-python         | Kafka client for Python            |
-| psycopg2             | PostgreSQL connectivity            |
-| JSON                 | Event/message format               |
-| Power BI             | Data visualization                 |
-| Power BI DirectQuery | Near-real-time database querying   |
+---
 
-**4. Project Structure**
+## 3. Technologies Used
 
+| Technology | Purpose |
+|---|---|
+| Python | Data generation and Kafka consumer |
+| Apache Kafka | Real-time event streaming |
+| ZooKeeper | Kafka coordination |
+| PostgreSQL | Persistent data storage |
+| Docker | Containerization |
+| Docker Compose | Multi-container orchestration |
+| kafka-python | Kafka client for Python |
+| psycopg2 | PostgreSQL connectivity |
+| JSON | Event/message format |
+| Power BI | Data visualization |
+| Power BI DirectQuery | Near-real-time database querying |
+
+---
+
+## 4. Project Structure
+
+```text
 real-time-data-pipeline/
 |
 +-- docker/
@@ -113,322 +131,336 @@ real-time-data-pipeline/
 +-- producer/
 |   +-- producer.py
 |   +-- Dockerfile
+|   +-- requirements.txt
 |
 +-- consumer/
 |   +-- consumer.py
 |   +-- Dockerfile
 |
++-- docs/
+|   +-- dashboard.png
+|
 +-- README.md
++-- requirements.txt
++-- .gitignore
+```
 
+---
 
-5. Docker Services
+## 5. Docker Services
 
-The complete pipeline runs using Docker Compose.
+The complete application is managed using Docker Compose.
 
-ZooKeeper
+### ZooKeeper
 
 ZooKeeper is used for Kafka coordination.
 
+```text
 Image: confluentinc/cp-zookeeper:7.5.0
-Port: 2181
 Container: zookeeper
-Kafka
+Port: 2181
+```
 
-Kafka acts as the message broker responsible for receiving and streaming
-stock market events.
+### Kafka
 
+Kafka acts as the message broker responsible for receiving and streaming stock market events.
+
+```text
 Image: confluentinc/cp-kafka:7.5.0
-Port: 9092
 Container: kafka
+Port: 9092
+```
 
-Kafka uses ZooKeeper for coordination.
+Kafka connects to ZooKeeper using:
 
+```yaml
 KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+```
 
 Kafka listens on:
 
+```yaml
 KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+```
 
 Kafka is advertised to other Docker services using:
 
+```yaml
 KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+```
 
-The Docker service name kafka is used because the producer and consumer
-communicate with Kafka through the Docker network.
+The Docker service name `kafka` is used by the producer and consumer to communicate with the Kafka broker through the Docker network.
 
-Producer
+### Producer
 
-The producer is a custom Python application running inside a Docker
-container.
+The producer is a custom Python application running inside a Docker container.
 
+```text
 Container: producer
 Application: producer.py
-Consumer
+```
 
-The consumer is a custom Python application responsible for reading Kafka
-messages, validating the data, and inserting valid records into PostgreSQL.
+### Consumer
 
+The consumer is a custom Python application that reads Kafka messages, validates the data, and stores valid records in PostgreSQL.
+
+```text
 Container: consumer
 Application: consumer.py
-PostgreSQL
+```
+
+### PostgreSQL
 
 PostgreSQL is used as the persistent storage layer.
 
+```text
 Image: postgres:16
 Container: postgres
 Port: 5432
 Database: stockdb
 User: stockuser
-6. Docker Compose Configuration
+```
 
-The complete application is managed through:
+---
 
-docker/compose.yaml
-
-The services are:
-
-zookeeper
-kafka
-producer
-consumer
-postgres
-
-The services use Docker's internal network and communicate using Docker
-service names.
-
-For example:
-
-Producer -> kafka:9092
-Consumer -> kafka:9092
-Consumer -> postgres:5432
-Restart Policy
-
-The services use:
-
-restart: unless-stopped
-
-This provides automatic container recovery when a container exits unexpectedly,
-while still allowing intentional manual stops.
-
-7. Kafka Topic
+## 6. Kafka Topic
 
 The project uses a Kafka topic named:
 
+```text
 stock-data
+```
 
 The topic can be verified using:
 
+```bash
 docker exec kafka kafka-topics \
   --list \
   --bootstrap-server kafka:9092
+```
 
 Expected output:
 
+```text
 stock-data
-8. Python Producer
+```
+
+---
+
+## 7. Python Producer
 
 The Python producer generates synthetic stock market events.
 
 The producer connects to Kafka using:
 
+```python
 bootstrap_servers="kafka:9092"
+```
 
-The producer publishes messages to:
+Stock events are published to the `stock-data` Kafka topic.
 
-stock-data
-Example Event
+### Example Event
+
+```json
 {
   "symbol": "AAPL",
   "price": 202.23
 }
-Dynamic Price Generation
+```
 
-The producer generates changing stock prices using Python's random module.
+### Dynamic Price Generation
 
-Example:
+The producer uses Python's `random` module to generate changing stock prices.
 
+```python
 import random
+```
 
 Synthetic prices are generated using:
 
+```python
 round(random.uniform(190, 210), 2)
+```
 
-Example generated prices:
+Example values:
 
+```text
 197.42
 203.18
 199.73
 206.11
+```
 
-A new stock event is generated periodically.
+> The generated stock prices are synthetic test data and do not represent actual market prices.
 
-Important Note
+---
 
-The stock prices generated by this project are synthetic test data.
+## 8. Python Kafka Consumer
 
-They do not represent actual market prices.
+The Python consumer reads messages from the `stock-data` Kafka topic.
 
-9. Kafka Producer Flow
-
-The producer sends each event to Kafka:
-
-producer.send("stock-data", message)
-producer.flush()
-
-The flow is:
-
-Python Producer
-       |
-       | JSON event
-       v
-Kafka Broker
-       |
-       v
-stock-data topic
-10. Python Kafka Consumer
-
-The Python consumer reads messages from the:
-
-stock-data
-
-Kafka topic.
-
-The consumer uses the KafkaConsumer class from the kafka-python
-library.
+The consumer uses the `KafkaConsumer` class from the `kafka-python` library.
 
 Kafka connection:
 
+```python
 bootstrap_servers="kafka:9092"
+```
 
 The consumer receives JSON messages and converts them into Python dictionaries.
 
 Example:
 
+```json
 {
   "symbol": "AAPL",
   "price": 200
 }
+```
 
-The consumer extracts:
+The consumer extracts the `symbol` and `price` fields from each message.
 
-symbol
-price
+---
 
-from every valid message.
-
-11. Consumer Dockerization
+## 9. Consumer Dockerization
 
 The consumer runs inside its own Docker container.
 
 Structure:
 
+```text
 consumer/
 |
 +-- consumer.py
-|
 +-- Dockerfile
+```
 
-The Dockerfile uses:
+The Dockerfile uses Python 3.11:
 
+```dockerfile
 FROM python:3.11-slim
+```
 
 Required Python packages include:
 
+```text
 kafka-python
 psycopg2-binary
+```
 
 The consumer is executed using:
 
+```dockerfile
 CMD ["python", "-u", "consumer.py"]
+```
 
-The -u option enables unbuffered Python output so that application logs are
-visible immediately in Docker logs.
+The `-u` option ensures that Python output is written immediately, making application logs visible through Docker.
 
-12. PostgreSQL Integration
+---
 
-PostgreSQL was added as the persistent storage layer of the pipeline.
+## 10. PostgreSQL Integration
 
-PostgreSQL runs as a Docker container.
+PostgreSQL acts as the persistent storage layer of the pipeline.
 
+Configuration:
+
+```text
 Image: postgres:16
 Port: 5432
 Database: stockdb
 User: stockuser
+```
 
-Other Docker containers communicate with PostgreSQL using:
+Other Docker services communicate with PostgreSQL using:
 
+```text
 postgres:5432
+```
 
-because postgres is the Docker Compose service name.
+because `postgres` is the Docker Compose service name.
 
-13. PostgreSQL Database
+---
 
-The database is:
+## 11. PostgreSQL Database and Tables
 
+The database used by the project is:
+
+```text
 stockdb
+```
 
-The PostgreSQL credentials configured for the development environment are:
+Development credentials:
 
+```text
 User: stockuser
 Password: stockpass
 Database: stockdb
+```
 
-For a production deployment, credentials should be stored using environment
-variables or Docker secrets instead of committing them directly to source
-control.
-
-14. PostgreSQL Tables
+> For production deployments, database credentials should be stored using environment variables, Docker secrets, or another secure secret-management solution instead of being committed to source control.
 
 The pipeline stores individual stock events in:
 
+```text
 stock_data
+```
 
-The table contains fields such as:
+Example table structure:
 
-Column	Type	Description
-id	SERIAL	Unique record identifier
-symbol	VARCHAR(10)	Stock symbol
-price	DECIMAL(10,2)	Stock price
-created_at	TIMESTAMP	Record creation time
+| Column | Type | Description |
+|---|---|---|
+| id | SERIAL | Unique record identifier |
+| symbol | VARCHAR(10) | Stock symbol |
+| price | DECIMAL(10,2) | Stock price |
+| created_at | TIMESTAMP | Record creation time |
 
-The project also uses an aggregated table:
+The project also uses:
 
+```text
 stock_summary
+```
 
-This table is used by Power BI for dashboard reporting.
+for aggregated reporting data used by Power BI.
 
-15. Kafka Consumer → PostgreSQL
+---
 
-The Python consumer was extended to store received Kafka messages in
-PostgreSQL.
+## 12. Kafka Consumer → PostgreSQL
 
-The consumer establishes a PostgreSQL connection using psycopg2.
+The Python consumer was extended to store received Kafka messages in PostgreSQL.
 
-Example connection:
+The consumer establishes a PostgreSQL connection using `psycopg2`.
 
+```python
 conn = psycopg2.connect(
     host="postgres",
     database="stockdb",
     user="stockuser",
     password="stockpass"
 )
+```
 
 A database cursor is created:
 
+```python
 cursor = conn.cursor()
+```
 
-When a valid Kafka message is received, the consumer inserts the data into
-PostgreSQL.
+Valid Kafka messages are inserted into PostgreSQL:
 
-Example:
-
+```sql
 INSERT INTO stock_data (symbol, price)
 VALUES (%s, %s);
+```
 
 The transaction is committed using:
 
+```python
 conn.commit()
-Complete Flow
+```
+
+### Processing Flow
+
+```text
 Kafka
   |
   v
@@ -448,99 +480,120 @@ Commit
   |
   v
 stock_data
-16. Data Validation
+```
 
-Data validation is performed before inserting Kafka messages into PostgreSQL.
+---
 
-Required Fields
+## 13. Data Validation
 
-Every message must contain:
+Data validation is performed before inserting messages into PostgreSQL.
 
+### Required Fields
+
+Each message must contain:
+
+```text
 symbol
 price
+```
 
-Example validation:
+Validation example:
 
+```python
 if "symbol" not in data or "price" not in data:
     print("Invalid message: missing symbol or price")
     continue
-Price Validation
+```
+
+### Price Validation
 
 The price must be numeric:
 
+```python
 if not isinstance(data["price"], (int, float)):
     print("Invalid message: price must be numeric")
     continue
-Symbol Validation
+```
 
-The symbol cannot be empty:
+### Symbol Validation
 
+The stock symbol cannot be empty:
+
+```python
 if not data["symbol"]:
     print("Invalid message: symbol cannot be empty")
     continue
+```
 
 Invalid messages are skipped and are not inserted into PostgreSQL.
 
-17. Error Handling
+---
 
-Error handling was added to the Kafka consumer using try/except.
+## 14. Error Handling
 
-Database operations are protected so that a failed transaction does not leave
-the PostgreSQL connection in an unusable transaction state.
+The Kafka consumer processes messages using `try/except`.
 
-If an error occurs:
+If a database error occurs, the current transaction is rolled back:
 
+```python
 conn.rollback()
+```
 
 The error is logged:
 
+```python
 print(f"Error processing message: {e}")
+```
 
-The consumer can then continue processing subsequent messages.
+This prevents a failed database transaction from leaving the connection in a failed state and allows the consumer to continue processing subsequent messages.
 
-18. Power BI Dashboard
+---
+
+## 15. Power BI Dashboard
 
 Power BI is used as the visualization layer of the pipeline.
 
-The dashboard reads the aggregated stock data from PostgreSQL.
+The dashboard connects to PostgreSQL reporting data and provides an interactive view of the stock pipeline.
 
-The dashboard contains:
+### Dashboard Features
 
-Total records by stock
-Average stock price
-Highest stock price
-Lowest stock price
-Highest vs lowest price comparison
-Stock symbol filtering
-KPI cards for stock-level metrics
+- Stock symbol slicer
+- Total records
+- Average stock price
+- Highest stock price
+- Lowest stock price
+- Highest vs lowest price comparison
+- Average stock price by symbol
+- Interactive filtering
+- DirectQuery
+- Automatic Page Refresh
 
-Example stock symbols:
+### Supported Stock Symbols
 
+```text
 AAPL
 AMZN
 GOOGL
 MSFT
-19. Power BI DirectQuery
+```
 
-The final dashboard uses a PostgreSQL connection through DirectQuery.
+### Dashboard Preview
 
-This allows Power BI to query the current PostgreSQL data instead of relying
-only on an imported snapshot.
+![Real-Time Stock Market Dashboard](docs/dashboard.png)
 
-The dashboard was tested with PostgreSQL while the pipeline was continuously
-inserting new records.
+---
 
-20. Automatic Page Refresh
+## 16. Power BI DirectQuery
 
-Automatic Page Refresh was enabled in the Power BI report.
+The Power BI report uses a PostgreSQL connection through **DirectQuery**.
 
-This allows the report page to periodically query the PostgreSQL data through
-DirectQuery.
+DirectQuery allows Power BI to query the current PostgreSQL data instead of relying only on an imported snapshot.
 
-The result is a near-real-time dashboard experience.
+This makes the dashboard suitable for near-real-time reporting when combined with Automatic Page Refresh.
 
-The complete visualization flow is:
+### Visualization Flow
 
+```text
 Producer
    |
    v
@@ -557,257 +610,151 @@ Power BI DirectQuery
    |
    v
 Automatic Page Refresh
-21. Running the Project
+```
+
+---
+
+## 17. Running the Project
 
 Navigate to the Docker directory:
 
+```bash
 cd real-time-data-pipeline/docker
+```
 
-Start the complete pipeline:
+Start all services:
 
+```bash
 docker compose up -d
+```
 
-Check running services:
+Check the running services:
 
+```bash
 docker compose ps
+```
 
 or:
 
+```bash
 docker ps
+```
 
 Expected containers:
 
+```text
 zookeeper
 kafka
 producer
 consumer
 postgres
+```
 
-All services should be in the:
+All services should be in the `Up` state.
 
-Up
+---
 
-state.
+## 18. Checking Producer Logs
 
-22. Checking Producer Logs
+Producer logs can be viewed using:
 
-Producer logs can be checked using:
-
+```bash
 docker logs producer --tail 30
+```
 
 The producer should continuously generate stock events.
 
-23. Checking Consumer Logs
+---
 
-Consumer logs can be checked using:
+## 19. Checking Consumer Logs
 
+Consumer logs can be viewed using:
+
+```bash
 docker logs consumer --tail 30
+```
 
-Example output:
+Example:
 
+```text
 {'symbol': 'GOOGL', 'price': 204.33}
 {'symbol': 'MSFT', 'price': 207.40}
 {'symbol': 'AMZN', 'price': 191.73}
 {'symbol': 'AAPL', 'price': 195.88}
+```
 
-This confirms that the consumer is receiving Kafka messages.
+This confirms that the consumer is successfully receiving Kafka messages.
 
-24. Verifying PostgreSQL Data
+---
 
-Connect to PostgreSQL using:
+## 20. Verifying PostgreSQL Data
 
+Connect to PostgreSQL:
+
+```bash
 docker exec -it postgres psql -U stockuser -d stockdb
+```
 
-Check stock summary:
+Check the aggregated stock data:
 
+```sql
 SELECT symbol, total_records
 FROM public.stock_summary
 ORDER BY symbol;
+```
 
-Example:
+Example output:
 
+```text
  symbol | total_records
 --------+--------------
  AAPL   | 46180
  AMZN   | 1638
  GOOGL  | 1595
  MSFT   | 1615
+```
 
-The values continuously increase as new events are processed.
+The record counts increase as new events are processed.
 
-25. End-to-End Verification
+---
 
-The complete pipeline was tested successfully.
+## 21. End-to-End Verification
 
-Test 1 — Kafka
+The pipeline was tested component by component.
 
-Kafka topic verification:
+### Kafka Verification
 
+```bash
 docker exec kafka kafka-topics \
   --list \
   --bootstrap-server kafka:9092
+```
 
-Result:
+Expected result:
 
+```text
 stock-data
-Test 2 — Producer
+```
 
-Producer logs showed continuously generated stock events.
+### Producer Verification
 
-Test 3 — Consumer
+Producer logs confirmed that stock events were continuously generated.
 
-Consumer logs showed successfully received Kafka messages.
+### Consumer Verification
 
-Test 4 — PostgreSQL
+Consumer logs confirmed that Kafka messages were successfully received and processed.
 
-PostgreSQL record counts increased while the producer and consumer were
-running.
+### PostgreSQL Verification
 
-Test 5 — Power BI
+PostgreSQL record counts increased as new stock events were consumed.
 
-The Power BI DirectQuery dashboard successfully reflected changing PostgreSQL
-values through Automatic Page Refresh.
+### Power BI Verification
 
-This confirms the end-to-end pipeline:
+The Power BI DirectQuery dashboard successfully displayed PostgreSQL data and reflected updated values through Automatic Page Refresh.
 
-Producer
-   |
-   v
-Kafka
-   |
-   v
-Consumer
-   |
-   v
-PostgreSQL
-   |
-   v
-Power BI
+### Final Verified Flow
 
-is functioning successfully.
-
-26. Reliability Configuration
-
-Docker Compose services use:
-
-restart: unless-stopped
-
-This configuration was applied to:
-
-zookeeper
-kafka
-producer
-consumer
-postgres
-
-The configuration allows Docker to restart containers after unexpected
-termination.
-
-The restart policy can be verified using:
-
-docker inspect producer \
-  --format '{{.HostConfig.RestartPolicy.Name}}'
-
-Expected output:
-
-unless-stopped
-
-The same check can be performed for the other services.
-
-27. Troubleshooting
-Issue 1 — Kafka Container Exited
-
-Kafka initially exited unexpectedly.
-
-Kafka logs showed a ZooKeeper-related error:
-
-KeeperException$NodeExistsException
-
-Kafka and ZooKeeper status were checked using:
-
-docker compose ps -a
-
-Kafka logs were inspected using:
-
-docker compose logs kafka --tail 100
-
-ZooKeeper was restarted when required:
-
-docker compose restart zookeeper
-
-Kafka was subsequently brought back to the Up state.
-
-Issue 2 — Producer Kafka Timeout
-
-The producer initially encountered:
-
-KafkaTimeoutError:
-Failed to update metadata after 60.0 secs
-
-The issue was investigated by checking:
-
-docker compose ps -a
-
-and:
-
-docker compose logs kafka --tail 100
-
-Kafka connectivity was then verified using:
-
-docker exec kafka kafka-topics \
-  --list \
-  --bootstrap-server kafka:9092
-
-The stock-data topic was successfully returned and the producer was able to
-communicate with Kafka.
-
-Issue 3 — Container Restart Behavior
-
-The Docker restart policy:
-
-restart: unless-stopped
-
-was added to the services.
-
-Important behavior:
-
-A manually stopped container is not automatically restarted by this policy.
-The policy is intended to provide recovery from unexpected container exits.
-
-28. Current Project Status
-Component	Status
-Docker	Completed
-Docker Compose	Completed
-ZooKeeper	Running
-Kafka	Running
-Kafka Topic	Completed
-Python Producer	Working
-Kafka Producer → Topic	Working
-Python Consumer	Working
-Consumer → PostgreSQL	Working
-Data Validation	Completed
-Error Handling	Completed
-PostgreSQL	Working
-Stock Summary	Working
-Power BI	Completed
-Power BI DirectQuery	Completed
-Automatic Page Refresh	Completed
-Docker Restart Policy	Completed
-End-to-End Testing	Completed
-29. Project Result
-
-The project successfully demonstrates an end-to-end streaming data pipeline.
-
-Synthetic stock market events are generated using Python and published to
-Apache Kafka.
-
-The Python consumer reads and validates these events before storing them in
-PostgreSQL.
-
-Power BI then queries the PostgreSQL data using DirectQuery and displays the
-results through a near-real-time dashboard with Automatic Page Refresh.
-
-Final Pipeline
+```text
 Python Producer
        |
        v
@@ -833,50 +780,217 @@ Power BI DirectQuery
        |
        v
 Automatic Page Refresh
-30. Future Improvements
+```
+
+---
+
+## 22. Docker Restart Policy
+
+The Docker Compose services use:
+
+```yaml
+restart: unless-stopped
+```
+
+This allows containers to restart automatically after unexpected termination.
+
+The restart policy can be verified using:
+
+```bash
+docker inspect producer \
+  --format '{{.HostConfig.RestartPolicy.Name}}'
+```
+
+Expected output:
+
+```text
+unless-stopped
+```
+
+---
+
+## 23. Troubleshooting
+
+### Kafka Container Exited
+
+Kafka initially exited unexpectedly.
+
+Kafka logs showed a ZooKeeper-related error:
+
+```text
+KeeperException$NodeExistsException
+```
+
+The Docker services were inspected using:
+
+```bash
+docker compose ps -a
+```
+
+Kafka logs were inspected using:
+
+```bash
+docker compose logs kafka --tail 100
+```
+
+ZooKeeper was restarted when required:
+
+```bash
+docker compose restart zookeeper
+```
+
+Kafka was subsequently brought back to the `Up` state.
+
+### Producer Kafka Timeout
+
+The producer initially encountered:
+
+```text
+KafkaTimeoutError:
+Failed to update metadata after 60.0 secs
+```
+
+The issue was investigated using:
+
+```bash
+docker compose ps -a
+```
+
+and:
+
+```bash
+docker compose logs kafka --tail 100
+```
+
+Kafka connectivity was then verified using:
+
+```bash
+docker exec kafka kafka-topics \
+  --list \
+  --bootstrap-server kafka:9092
+```
+
+The `stock-data` topic was successfully returned and the producer was able to communicate with Kafka.
+
+---
+
+## 24. Current Project Status
+
+| Component | Status |
+|---|---|
+| Docker | Completed |
+| Docker Compose | Completed |
+| ZooKeeper | Working |
+| Kafka | Working |
+| Kafka Topic | Completed |
+| Python Producer | Working |
+| Producer → Kafka | Working |
+| Python Consumer | Working |
+| Consumer → PostgreSQL | Working |
+| Data Validation | Completed |
+| Error Handling | Completed |
+| PostgreSQL | Working |
+| Stock Summary | Working |
+| Power BI Dashboard | Completed |
+| Power BI DirectQuery | Completed |
+| Automatic Page Refresh | Completed |
+| Docker Restart Policy | Completed |
+| End-to-End Testing | Completed |
+| GitHub Documentation | Completed |
+
+---
+
+## 25. Project Result
+
+The project successfully demonstrates an end-to-end event-driven data pipeline.
+
+Synthetic stock market events are generated using Python and published to Apache Kafka.
+
+The Python consumer reads and validates these events before storing them in PostgreSQL.
+
+Power BI then queries the PostgreSQL reporting data using DirectQuery and displays the results through an interactive dashboard with Automatic Page Refresh.
+
+### Final Architecture
+
+```text
+Python Producer
+       |
+       v
+Apache Kafka
+       |
+       v
+stock-data
+       |
+       v
+Python Consumer
+       |
+       v
+Data Validation
+       |
+       v
+PostgreSQL
+       |
+       v
+stock_summary
+       |
+       v
+Power BI DirectQuery
+       |
+       v
+Automatic Page Refresh
+```
+
+---
+
+## 26. Future Improvements
 
 Possible future improvements include:
 
-Replace synthetic stock prices with a real stock market API
-Add event timestamps to every Kafka message
-Improve Kafka partitioning strategy
-Implement Kafka consumer groups
-Add more advanced data quality checks
-Add monitoring and alerting
-Add centralized application logging
-Improve dashboard design and analytics
-Add CI/CD using GitHub Actions
-Deploy the pipeline to a cloud platform
-Introduce infrastructure-as-code
-Add automated testing
-Secure database credentials using environment variables or secrets
-31. Key Learning Outcomes
+- Replace synthetic stock prices with a real stock market API
+- Add event timestamps to Kafka messages
+- Implement Kafka partitions
+- Implement Kafka consumer groups
+- Add advanced data quality checks
+- Add monitoring and alerting
+- Add centralized logging
+- Improve Power BI analytics
+- Add CI/CD using GitHub Actions
+- Deploy the pipeline to a cloud platform
+- Introduce Infrastructure as Code
+- Add automated testing
+- Secure database credentials using environment variables or secrets
+
+---
+
+## 27. Key Learning Outcomes
 
 This project provided hands-on experience with:
 
-Event-driven architecture
-Real-time data streaming
-Apache Kafka
-Kafka producers and consumers
-Docker containerization
-Docker Compose
-PostgreSQL
-Python database integration
-Data validation
-Transaction handling
-Error handling
-Power BI
-DirectQuery
-Automatic page refresh
-Container restart policies
-End-to-end pipeline testing
-Troubleshooting distributed services
-32. Development Approach
+- Event-driven architecture
+- Real-time data streaming
+- Apache Kafka
+- Kafka producers and consumers
+- Docker containerization
+- Docker Compose
+- PostgreSQL
+- Python database integration
+- Data validation
+- Transaction handling
+- Error handling
+- Power BI
+- DirectQuery
+- Automatic Page Refresh
+- Container restart policies
+- End-to-end pipeline testing
+- Distributed service troubleshooting
 
-The project was developed incrementally.
+---
 
-The workflow followed:
+## 28. Development Approach
 
+The project was developed incrementally using the following workflow:
+
+```text
 Build
   ↓
 Run
@@ -890,34 +1004,32 @@ Verify
 Document
   ↓
 Continue
+```
 
 Each major component was tested before moving to the next stage.
 
-This approach helped identify and resolve issues related to Kafka connectivity,
-ZooKeeper, producer communication, consumer processing, PostgreSQL storage,
-and dashboard connectivity.
+This approach helped identify and resolve issues related to Kafka connectivity, ZooKeeper, producer communication, consumer processing, PostgreSQL storage, Power BI connectivity, and dashboard refresh.
 
-33. Conclusion
+---
 
-The Real-Time Stock Market Data Pipeline demonstrates how a complete
-streaming data engineering workflow can be designed using open-source and
-widely used technologies.
+## 29. Conclusion
+
+The **Real-Time Stock Market Data Pipeline** demonstrates how a complete streaming data engineering workflow can be built using Python, Apache Kafka, Docker, PostgreSQL, and Power BI.
 
 The project combines:
 
+```text
 Python
 +
-Kafka
+Apache Kafka
 +
 Docker
 +
 PostgreSQL
 +
 Power BI
+```
 
-to create an end-to-end pipeline capable of continuously processing and
-visualizing stock market events.
+to create an end-to-end pipeline capable of continuously processing, storing, and visualizing stock market events.
 
-The project is currently complete as a working development/portfolio project
-and can be extended with real market APIs, cloud deployment, monitoring,
-CI/CD, and additional analytics.
+The project can be further extended with real market APIs, cloud deployment, monitoring, CI/CD, and advanced analytics.
